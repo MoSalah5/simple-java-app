@@ -2,35 +2,37 @@ resource "aws_instance" "default" {
   instance_type = "t2.micro"
   ami           = "ami-0b5eea76982371e91"
   tags = {
-    "Name" = "jenkins_server"
+    "Name" = "tomcat_server"
   }
   security_groups = [aws_security_group.default.name]
   key_name        = "devops_admin"
 
   user_data = <<EOF
       #!/bin/bash
-      sudo yum update -y
-      sudo wget -O /etc/yum.repos.d/jenkins.repo \
-        https://pkg.jenkins.io/redhat-stable/jenkins.repo
-      sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
-      sudo yum upgrade
-      sudo amazon-linux-extras install java-openjdk11 -y
-      sudo yum install jenkins -y
-      sudo systemctl enable jenkins
-      sudo systemctl start jenkins
+      yum update -y
+      yum install -y java-1.8*
+      #Download tomcat binary
+      cd /opt
+      wget https://dlcdn.apache.org/tomcat/tomcat-10/v10.0.27/bin/apache-tomcat-10.0.27.tar.gz
+      tar -xvzf /opt/apache-tomcat-10.0.27.tar.gz
+      mv apache-tomcat-10.0.27 tomcat ; rm -rf apache-tomcat-10.0.27.tar.gz
+      chmod +x /opt/tomcat/bin/startup.sh 
+      chmod +x /opt/tomcat/bin/shutdown.sh
+      ln -s /opt/tomcat/bin/startup.sh /usr/local/bin/tomcatup
+      ln -s /opt/tomcat/bin/shutdown.sh /usr/local/bin/tomcatdown
+      tomcatup
   EOF
 }
 
 resource "aws_security_group" "default" {
-  name        = "jenkins_sg"
-  description = "jenkins_sg"
+  name        = "tomcat_sg"
+  description = "tomcat_sg"
   vpc_id      = "vpc-01af46ea0ee710a46"
   ingress {
     from_port = 8080
     to_port   = 8080
     protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-
   }
 
   ingress {
@@ -49,7 +51,7 @@ resource "aws_security_group" "default" {
   }
 
   tags = {
-    Name = "jenkins_sg"
+    Name = "tomcat_sg"
   }
 }
 
